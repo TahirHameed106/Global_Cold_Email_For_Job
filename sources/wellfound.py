@@ -30,7 +30,7 @@ from .base import normalize_job
 MANUAL_JOBS_FILE = os.path.join(os.path.dirname(__file__), "..", "data", "manual_jobs.json")
 
 
-def fetch_jobs(keywords=None, employment_types=None, max_jobs=25):
+def fetch_jobs(keywords=None, employment_types=None, max_jobs=25, **kwargs):
     """
     Loads any jobs YOU manually pasted into data/manual_jobs.json.
     Returns an empty list if that file doesn't exist yet — this is expected

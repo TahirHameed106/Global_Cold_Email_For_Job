@@ -23,7 +23,7 @@ def _looks_like_target(job_raw, keywords, employment_types):
     return True
 
 
-def fetch_jobs(keywords, employment_types=None, max_jobs=25):
+def fetch_jobs(keywords, employment_types=None, max_jobs=25, **kwargs):
     """Return a list of normalized job dicts matching any of the given keywords."""
     jobs = []
     try:

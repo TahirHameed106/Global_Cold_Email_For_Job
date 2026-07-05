@@ -26,7 +26,7 @@ def _looks_like_target(title, description, keywords):
     return any(kw.lower() in text for kw in keywords)
 
 
-def fetch_jobs(keywords, employment_types=None, max_jobs=25):
+def fetch_jobs(keywords, employment_types=None, max_jobs=25, **kwargs):
     """Return a list of normalized job dicts matching any of the given keywords."""
     jobs = []
     try:

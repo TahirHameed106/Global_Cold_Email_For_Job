@@ -6,7 +6,7 @@ which site a job came from.
 
 JOB_SCHEMA_EXAMPLE = {
     "source": "RemoteOK",
-    "title": "Junior Frontend Developer",
+    "title": "Junior Backend Developer",
     "company": "Acme Startup",
     "company_domain": "acmestartup.com",   # used later by contact_finder.py
     "company_size": "size_unknown",         # "1-10", "11-50", etc. or "size_unknown"
