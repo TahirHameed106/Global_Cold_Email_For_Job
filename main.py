@@ -50,6 +50,7 @@ SOURCE_MODULES = {
 }
 
 
+
 def load_profile():
     path = os.path.join(PROJECT_ROOT, "config", "profile.yaml")
     with open(path, "r", encoding="utf-8") as f:
