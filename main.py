@@ -30,7 +30,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from sources import remoteok, weworkremotely, himalayas, wellfound
+from sources import remoteok, weworkremotely, himalayas, wellfound, adzuna, jooble, linkedin
 from core.normalizer import dedupe, filter_jobs
 from core.matcher import score_match
 from core.cv_tailor import build_tailored_cv_data, render_cv_docx
@@ -47,8 +47,10 @@ SOURCE_MODULES = {
     "weworkremotely": weworkremotely,
     "himalayas": himalayas,
     "wellfound": wellfound,
+    "adzuna": adzuna,
+    "jooble": jooble,
+    "linkedin": linkedin,
 }
-
 
 
 def load_profile():
@@ -69,6 +71,7 @@ def collect_jobs(profile):
     keywords = search["keywords"]
     emp_types = search["employment_types"]
     max_per_source = limits["max_jobs_per_source"]
+    target_countries = search.get("target_countries", [])
 
     all_jobs = []
     for name, enabled in profile["sources"].items():
@@ -79,7 +82,13 @@ def collect_jobs(profile):
             print(f"[main] Unknown source '{name}' in profile.yaml, skipping.")
             continue
         print(f"\n── Source: {name} ──")
-        jobs = module.fetch_jobs(keywords=keywords, employment_types=emp_types, max_jobs=max_per_source)
+        jobs = module.fetch_jobs(
+            keywords=keywords,
+            employment_types=emp_types,
+            max_jobs=max_per_source,
+            target_countries=target_countries,   # used by adzuna; ignored elsewhere via **kwargs
+            locations=target_countries,           # used by jooble; ignored elsewhere via **kwargs
+        )
         all_jobs.extend(jobs)
 
     return all_jobs
