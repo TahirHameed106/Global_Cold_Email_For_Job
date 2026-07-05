@@ -11,7 +11,7 @@ Saudi Arabia / Australia / Austria.
 
 1. **`config/profile.yaml`** — your search criteria (field, keywords, countries, company size, threshold)
 2. **`data/skill_bank.json`** — the ONLY source of truth for your real skills/projects/experience. Nothing is ever invented outside this file.
-3. **`sources/`** — pulls jobs from RemoteOK, We Work Remotely, and Himalayas (all free public APIs, no login/scraping risk). Wellfound is a manual-assist stub — see below.
+3. **`sources/`** — pulls jobs from RemoteOK, We Work Remotely, Himalayas, Adzuna, and Jooble (all free, legitimate APIs — no login/scraping risk). Wellfound and LinkedIn are manual-assist stubs — see below.
 4. **`core/matcher.py`** — scores each job against your skill bank, 0-100%
 5. **`core/cv_tailor.py`** — for jobs scoring above your threshold, reorders and rephrases your real bullets to mirror the job's language, then renders a `.docx`
 6. **`core/contact_finder.py`** — finds a real, company-published email (never scrapes LinkedIn), and free-verifies it won't bounce
@@ -32,6 +32,12 @@ be thorough, this is what every tailored CV is built from.
 
 Edit `config/profile.yaml` to match what you're targeting.
 
+For Indeed-style coverage, sign up free for:
+- Adzuna: https://developer.adzuna.com/ (covers UK, US, Germany, Austria, Australia)
+- Jooble: https://jooble.org/api/about (broader coverage, best for UAE/Saudi Arabia)
+
+Add both sets of keys to `.env`.
+
 ## Running
 
 ```bash
@@ -40,19 +46,22 @@ python main.py schedule     # run once, then daily at 09:00
 python -m core.reply_tracker   # check inbox for replies (run this daily too)
 ```
 
-## About Wellfound
+## About Wellfound and LinkedIn
 
-Wellfound (AngelList Talent) is genuinely the best source for tiny startup
-teams — it shows team size directly. But it requires a login to browse, and
-scraping behind a login wall breaks their Terms of Service. Instead:
+Neither has a public jobs-search API for regular developers, and both
+explicitly prohibit automated scraping in their Terms of Service — LinkedIn
+in particular has pursued legal action against scraping tools before. So
+instead of scraping them:
 
-1. Browse Wellfound normally in your browser with their built-in filters
-   (Remote, 1-10 employees, Software Engineering)
-2. For roles you like, either message the founder directly through
-   Wellfound's own messaging (often more effective than email), or
-3. Paste the job details into `data/manual_jobs.json` — the bot will then
-   run it through the same match/tailor/contact/send/track pipeline as
-   everything else
+1. Browse them normally in your browser with their own built-in filters
+   (Remote, 1-10 employees / Internship-Entry level, your keywords)
+2. For roles you like on Wellfound: message the founder directly through
+   Wellfound's own messaging (often more effective than email), or paste
+   the job into `data/manual_jobs.json`
+3. For roles you like on LinkedIn: paste the job into
+   `data/manual_jobs_linkedin.json`
+4. Either way, it then runs through the exact same match/tailor/contact/
+   send/track pipeline as everything else
 
 ## Honesty guardrails (please don't remove these)
 
