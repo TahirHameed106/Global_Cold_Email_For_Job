@@ -5,14 +5,14 @@
 # ─────────────────────────────────────────────────────────────────────────
 
 candidate:
-  name: "Tahir Hameed"
-  headline: "Software Engineering Student / Last-Year Graduate"
-  email: "tahirdev47@gmail.com"          # your own address, used for the "From" name
+  name: "Your Name"
+  headline: "Software Engineering Student / Fresh Graduate"
+  email: "you@example.com"          # your own address, used for the "From" name
   location: "Karachi, Pakistan"      # where you're based (shown in the email if relevant)
   links:
     portfolio: ""
-    github: "https://github.com/TahirHameed106"
-    linkedin: "https://linkedin.com/in/tahir-se"
+    github: ""
+    linkedin: ""
 
 search:
   field: "Software Engineering"
@@ -47,7 +47,7 @@ search:
   # this data (Wellfound and Himalayas usually do; RemoteOK/WWR often don't —
   # those get flagged "size_unknown" and you decide via the company site).
   company_size:
-    min: 5
+    min: 1
     max: 10
 
   # Only apply if the AI match score against your skill bank is at least this.
@@ -55,12 +55,20 @@ search:
 
 sources:
   # Toggle sources on/off. See sources/ folder — each one is a self-contained
-  # adapter. Wellfound has no public API; it's included as a documented
-  # manual-assist stub, disabled by default (see sources/wellfound.py).
+  # adapter.
+  #
+  # Wellfound and LinkedIn have no public job-search API and scraping them
+  # breaks their Terms of Service, so they're documented manual-assist stubs
+  # (disabled by default) — see sources/wellfound.py and sources/linkedin.py
+  # for how to feed them jobs you found yourself, still through the full
+  # matching/tailoring pipeline.
   remoteok: true
   weworkremotely: true
   himalayas: true
+  adzuna: true      # needs ADZUNA_APP_ID + ADZUNA_APP_KEY in .env (free signup)
+  jooble: true       # needs JOOBLE_API_KEY in .env (free signup) — best UAE/Saudi coverage
   wellfound: false
+  linkedin: false
 
 limits:
   max_jobs_per_source: 25
