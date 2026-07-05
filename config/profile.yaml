@@ -1,0 +1,78 @@
+# ─────────────────────────────────────────────────────────────────────────
+# profile.yaml — Your job search profile
+# Change ONLY this file to retarget the bot to a different field, country,
+# or seniority level. No code changes needed anywhere else.
+# ─────────────────────────────────────────────────────────────────────────
+
+candidate:
+  name: "Tahir Hameed"
+  headline: "Software Engineering Student / Last-Year Graduate"
+  email: "tahirdev47@gmail.com"          # your own address, used for the "From" name
+  location: "Karachi, Pakistan"      # where you're based (shown in the email if relevant)
+  links:
+    portfolio: ""
+    github: "https://github.com/TahirHameed106"
+    linkedin: "https://linkedin.com/in/tahir-se"
+
+search:
+  field: "Software Engineering"
+  # Free-text keywords the source adapters will search for. Add/remove freely.
+  keywords:
+    - "software engineer intern"
+    - "junior software engineer"
+    - "frontend developer intern"
+    - "backend developer junior"
+    - "full stack developer intern"
+    - "software engineering volunteer"
+
+  employment_types:
+    - "internship"
+    - "junior"
+    - "volunteer"
+    - "entry-level"
+
+  remote_only: true
+
+  target_countries:
+    - "United Kingdom"
+    - "United States"
+    - "Germany"
+    - "United Arab Emirates"
+    - "Saudi Arabia"
+    - "Australia"
+    - "Austria"
+    - "Remote"          # keep this — most startup listings just say "Remote"
+
+  # Startups only. Team size filters are applied when a source provides
+  # this data (Wellfound and Himalayas usually do; RemoteOK/WWR often don't —
+  # those get flagged "size_unknown" and you decide via the company site).
+  company_size:
+    min: 5
+    max: 10
+
+  # Only apply if the AI match score against your skill bank is at least this.
+  match_threshold_percent: 80
+
+sources:
+  # Toggle sources on/off. See sources/ folder — each one is a self-contained
+  # adapter. Wellfound has no public API; it's included as a documented
+  # manual-assist stub, disabled by default (see sources/wellfound.py).
+  remoteok: true
+  weworkremotely: true
+  himalayas: true
+  wellfound: false
+
+limits:
+  max_jobs_per_source: 25
+  max_emails_per_day: 30
+  send_delay_seconds_min: 30
+  send_delay_seconds_max: 90
+
+email:
+  # Priority order the bot follows when picking who to email — see
+  # core/contact_finder.py. Do not reorder unless you know what you're doing.
+  contact_priority:
+    - "founder"
+    - "job_poster"
+    - "engineering_lead"
+    - "careers_generic"

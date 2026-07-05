@@ -1,0 +1,9 @@
+python-dotenv
+schedule
+PyYAML
+requests
+beautifulsoup4
+feedparser
+dnspython
+google-genai
+python-docx

@@ -1,0 +1,62 @@
+{
+  "_readme": "This is the ONLY place your real experience lives. The CV tailor engine selects and reorders items from here for each job — it never invents anything not listed here. Fill this in honestly and as completely as you can; the more detail here, the better the tailored CVs will be.",
+
+  "summary_variants": {
+    "general": "Software engineering student with hands-on project experience in full-stack development, eager to contribute to a fast-moving startup team.",
+    "frontend": "Frontend-focused software engineering student experienced with modern JavaScript frameworks and responsive UI development.",
+    "backend": "Backend-focused software engineering student with experience building APIs, working with databases, and writing clean, testable code."
+  },
+
+  "skills": [
+    { "name": "JavaScript", "tags": ["frontend", "backend"] },
+    { "name": "Python", "tags": ["backend", "general"] },
+    { "name": "React", "tags": ["frontend"] },
+    { "name": "Node.js", "tags": ["backend"] },
+    { "name": "SQL", "tags": ["backend"] },
+    { "name": "Git / GitHub", "tags": ["general"] },
+    { "name": "REST APIs", "tags": ["backend"] },
+    { "name": "HTML / CSS", "tags": ["frontend"] }
+  ],
+
+  "projects": [
+    {
+      "id": "proj_1",
+      "title": "Example: Task Management Web App",
+      "tags": ["frontend", "backend", "general"],
+      "bullets": [
+        "Built a full-stack task management app using React and Node.js, used by 30+ classmates during a semester project",
+        "Designed a REST API with Express and PostgreSQL for task CRUD operations and user authentication",
+        "Deployed the app using free-tier hosting (Render/Vercel) and set up CI with GitHub Actions"
+      ]
+    },
+    {
+      "id": "proj_2",
+      "title": "Example: Personal Portfolio + Blog",
+      "tags": ["frontend", "general"],
+      "bullets": [
+        "Developed a responsive personal portfolio site using React and Tailwind CSS",
+        "Implemented a Markdown-based blog engine with static site generation for fast load times"
+      ]
+    }
+  ],
+
+  "experience": [
+    {
+      "id": "exp_1",
+      "title": "Example: University Coding Club — Contributor",
+      "tags": ["general"],
+      "bullets": [
+        "Contributed to 3 open-source-style club projects, collaborating with a team of 4 using Git branching workflows",
+        "Ran a beginner workshop on Git and GitHub for 20+ first-year students"
+      ]
+    }
+  ],
+
+  "education": {
+    "institute": "Your Institute",
+    "degree": "BSc Computer Science / Software Engineering",
+    "graduation_year": "2026",
+    "cgpa": "X.XX/4.0",
+    "coursework": ["Data Structures & Algorithms", "Databases", "Web Development", "Software Engineering"]
+  }
+}
