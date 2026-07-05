@@ -1,0 +1,15 @@
+[
+  {
+    "_example": true,
+    "title": "Junior Software Engineer Intern",
+    "company": "Example Startup",
+    "company_domain": "examplestartup.com",
+    "company_size": "1-10",
+    "location": "Remote",
+    "employment_type": "internship",
+    "description": "Paste the full job description text here from LinkedIn.",
+    "job_url": "https://linkedin.com/jobs/view/example",
+    "posted": "2026-07-01",
+    "tags": ["react", "node"]
+  }
+]
