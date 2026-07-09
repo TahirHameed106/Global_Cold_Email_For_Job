@@ -79,9 +79,11 @@ def pick_summary_variant(skill_bank, matching_skills):
     variants = skill_bank.get("summary_variants", {})
     matched_lower = " ".join(matching_skills).lower()
 
-    if any(term in matched_lower for term in ["react", "css", "html", "frontend", "ui"]):
+    if any(term in matched_lower for term in ["testing", "qa", "quality assurance", "postman", "unit test", "sqa"]):
+        return variants.get("qa", variants.get("general", ""))
+    if any(term in matched_lower for term in ["react", "css", "html", "frontend", "ui", "next.js"]):
         return variants.get("frontend", variants.get("general", ""))
-    if any(term in matched_lower for term in ["node", "sql", "api", "backend", "server"]):
+    if any(term in matched_lower for term in ["node", "sql", "api", "backend", "server", "c#", ".net"]):
         return variants.get("backend", variants.get("general", ""))
     return variants.get("general", "")
 
@@ -102,10 +104,25 @@ def build_tailored_cv_data(job_title, job_description, skill_bank, match_result,
         [s for s in all_skills if s.lower() not in matched_set]
     )
 
-    # Reorder + rewrite projects: relevance = how many matched skills appear in its tags/bullets
+    # Reorder + rewrite projects: relevance = word-level overlap between matched
+    # skills and the project's tags/bullets — exact-phrase matching was too
+    # strict (e.g. "Unit Testing (NUnit / xUnit basics)" as a skill name rarely
+    # appears verbatim in a bullet even when the underlying content matches).
+    import re as _re
+
+    def _significant_words(text):
+        words = _re.findall(r"[a-zA-Z][a-zA-Z0-9#+.]{2,}", text.lower())
+        stopwords = {"the", "and", "for", "with", "using", "via", "basics"}
+        return {w for w in words if w not in stopwords}
+
+    matching_words = set()
+    for skill in matching_skills:
+        matching_words |= _significant_words(skill)
+
     def relevance(item):
-        text = (" ".join(item.get("tags", [])) + " " + " ".join(item.get("bullets", []))).lower()
-        return sum(1 for m in matching_skills if m.lower() in text)
+        text = " ".join(item.get("tags", [])) + " " + " ".join(item.get("bullets", []))
+        item_words = _significant_words(text)
+        return len(matching_words & item_words)
 
     projects = sorted(skill_bank.get("projects", []), key=relevance, reverse=True)
     experience = sorted(skill_bank.get("experience", []), key=relevance, reverse=True)
@@ -123,6 +140,7 @@ def build_tailored_cv_data(job_title, job_description, skill_bank, match_result,
         "projects": projects,
         "experience": experience,
         "education": skill_bank.get("education", {}),
+        "certifications": skill_bank.get("certifications", []),
         "job_title": job_title,
     }
 
@@ -137,7 +155,7 @@ def render_cv_docx(candidate, tailored_data, output_path):
     name_run.font.bold = True
     name_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
-    contact_bits = [candidate.get("email", ""), candidate.get("location", "")]
+    contact_bits = [candidate.get("email", ""), candidate.get("phone", ""), candidate.get("location", "")]
     links = candidate.get("links", {})
     contact_bits += [v for v in links.values() if v]
     contact_p = doc.add_paragraph(" | ".join(b for b in contact_bits if b))
@@ -172,6 +190,12 @@ def render_cv_docx(candidate, tailored_data, output_path):
         doc.add_heading("Education", level=2)
         doc.add_paragraph(f"{edu.get('degree','')} — {edu.get('institute','')}")
         doc.add_paragraph(f"Graduating {edu.get('graduation_year','')} | CGPA {edu.get('cgpa','')}")
+
+    certifications = tailored_data.get("certifications", [])
+    if certifications:
+        doc.add_heading("Certifications", level=2)
+        for cert in certifications:
+            doc.add_paragraph(cert, style="List Bullet")
 
     doc.save(output_path)
     print(f"[cv_tailor] Tailored CV saved -> {output_path}")

@@ -5,14 +5,15 @@
 # ─────────────────────────────────────────────────────────────────────────
 
 candidate:
-  name: "Your Name"
-  headline: "Software Engineering Student / Fresh Graduate"
-  email: "you@example.com"          # your own address, used for the "From" name
-  location: "Karachi, Pakistan"      # where you're based (shown in the email if relevant)
+  name: "Tahir Hameed"
+  headline: "Software Engineering Student / Full-Stack Developer"
+  email: "tahirdev47@gmail.com"
+  phone: "+92 315 2469747"
+  location: "Karachi, Pakistan"
   links:
+    github: "github.com/TahirHameed106"
+    linkedin: "linkedin.com/in/tahir-se"
     portfolio: ""
-    github: ""
-    linkedin: ""
 
 search:
   field: "Software Engineering"

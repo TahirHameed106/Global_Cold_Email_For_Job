@@ -25,3 +25,29 @@ def normalize_job(**kwargs):
     job = dict(JOB_SCHEMA_EXAMPLE)
     job.update(kwargs)
     return job
+
+
+_STOPWORDS = {"the", "and", "for", "with", "using", "via", "a", "an", "of", "in", "at", "to"}
+
+
+def keyword_matches(text, keywords, min_hits=1):
+    """
+    Loose, word-level keyword match — replaces fragile exact-phrase matching.
+
+    A keyword like "software engineer intern" almost never appears verbatim
+    in a real job posting, even when the posting is a perfect match (it might
+    say "Junior Software Engineer (Internship)" instead). This checks
+    individual significant words from each keyword phrase instead, so any
+    real overlap counts as a hit.
+
+    This is intentionally loose at this stage — the AI match scorer
+    (core/matcher.py) does the real, strict filtering later. This stage's
+    only job is to not throw away good jobs before they even get scored.
+    """
+    text_lower = text.lower()
+    for kw in keywords:
+        words = [w for w in kw.lower().split() if len(w) > 2 and w not in _STOPWORDS]
+        hits = sum(1 for w in words if w in text_lower)
+        if hits >= min_hits:
+            return True
+    return False

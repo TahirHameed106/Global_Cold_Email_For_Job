@@ -10,17 +10,15 @@ to print one raw job and check the field names still match.
 
 import requests
 import time
-from .base import normalize_job
+from .base import normalize_job, keyword_matches
 
 API_URL = "https://remoteok.com/api"
 HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; JobSearchBot/1.0)"}
 
 
 def _looks_like_target(job_raw, keywords, employment_types):
-    text = f"{job_raw.get('position','')} {job_raw.get('description','')} {' '.join(job_raw.get('tags', []))}".lower()
-    if not any(kw.lower() in text for kw in keywords):
-        return False
-    return True
+    text = f"{job_raw.get('position','')} {job_raw.get('description','')} {' '.join(job_raw.get('tags', []))}"
+    return keyword_matches(text, keywords)
 
 
 def fetch_jobs(keywords, employment_types=None, max_jobs=25, **kwargs):

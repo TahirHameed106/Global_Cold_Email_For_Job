@@ -1,89 +1,97 @@
 """
 sources/himalayas.py — Himalayas.app public jobs API adapter.
 
-IMPORTANT: Public APIs change their response shape over time, and I could
-not verify this endpoint's exact current field names from this environment
-(no live internet access during code generation). Run this file directly
-first:
-
-    python -m sources.himalayas
-
-It will print the raw shape of the first job returned so you can confirm
-the field names below still match. If they don't, adjust the .get() keys
-in `_parse_job()` — everything else in the pipeline stays the same.
+Verified against Himalayas' own docs (https://himalayas.app/docs/remote-jobs-api):
+  - Correct endpoint is /jobs/api/search (NOT /api/jobs — that was wrong)
+  - Free, no API key required
+  - Supports server-side keyword + employmentType filtering directly,
+    so we don't need to do our own text matching for this source
 """
 
-import time
 import requests
 from .base import normalize_job
 
-API_URL = "https://himalayas.app/api/jobs"
+SEARCH_URL = "https://himalayas.app/jobs/api/search"
 HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; JobSearchBot/1.0)"}
+
+# Maps our profile.yaml employment_types to Himalayas' documented enum values
+EMPLOYMENT_TYPE_MAP = {
+    "internship": "Intern",
+    "volunteer": "Volunteer",
+    "junior": None,       # Himalayas has no "junior" enum — filtered by keyword instead
+    "entry-level": None,
+}
 
 
 def _parse_job(job_raw):
-    """Map Himalayas' raw job object to our normalized schema. Adjust keys if needed."""
-    company = job_raw.get("companyName") or job_raw.get("company", {}).get("name", "Unknown")
     return normalize_job(
         source="Himalayas",
         title=job_raw.get("title", "N/A"),
-        company=company,
+        company=job_raw.get("companyName", "Unknown"),
         company_domain=job_raw.get("companyWebsite", "") or "",
         company_size=job_raw.get("companySize", "size_unknown") or "size_unknown",
-        location=job_raw.get("locationRestrictions", ["Remote"])[0] if job_raw.get("locationRestrictions") else "Remote",
+        location=", ".join(job_raw.get("locationRestrictions", []) or []) or "Remote (worldwide)",
         remote=True,
         employment_type=job_raw.get("employmentType", "unknown") or "unknown",
-        description=job_raw.get("description", "") or job_raw.get("excerpt", ""),
-        job_url=job_raw.get("applicationLink", "") or job_raw.get("url", ""),
-        posted=job_raw.get("publishedAt", ""),
+        description=job_raw.get("description", "") or "",
+        job_url=job_raw.get("applicationLink", "") or job_raw.get("guid", ""),
+        posted=job_raw.get("pubDate", ""),
         tags=job_raw.get("categories", []) or [],
     )
 
 
-def _looks_like_target(job, keywords):
-    text = f"{job['title']} {job['description']}".lower()
-    return any(kw.lower() in text for kw in keywords)
-
-
 def fetch_jobs(keywords, employment_types=None, max_jobs=25, **kwargs):
-    """Return a list of normalized job dicts matching any of the given keywords."""
+    """
+    Uses Himalayas' own search endpoint, which does server-side keyword and
+    employment-type filtering — one request per keyword to cover your list.
+    """
     jobs = []
-    try:
-        resp = requests.get(API_URL, headers=HEADERS, timeout=15)
-        resp.raise_for_status()
-        data = resp.json()
-    except Exception as e:
-        print(f"[Himalayas] Fetch failed: {e}")
-        return jobs
+    seen_urls = set()
+    employment_types = employment_types or []
 
-    # Defensive: the job list might be at data["jobs"], data["data"], or the root list itself.
-    raw_jobs = data.get("jobs") if isinstance(data, dict) else data
-    if raw_jobs is None and isinstance(data, dict):
-        raw_jobs = data.get("data", [])
-    raw_jobs = raw_jobs or []
+    himalayas_types = [EMPLOYMENT_TYPE_MAP.get(t) for t in employment_types]
+    himalayas_types = [t for t in himalayas_types if t]  # drop unmapped/None
 
-    for job_raw in raw_jobs:
+    for kw in keywords:
         if len(jobs) >= max_jobs:
             break
+        params = {"keyword": kw, "limit": min(max_jobs, 20)}
+        if himalayas_types:
+            params["employmentType"] = ",".join(himalayas_types)
+
         try:
-            job = _parse_job(job_raw)
-        except Exception:
+            resp = requests.get(SEARCH_URL, params=params, headers=HEADERS, timeout=15)
+            resp.raise_for_status()
+            data = resp.json()
+        except Exception as e:
+            print(f"[Himalayas] Search failed for '{kw}': {e}")
             continue
-        if _looks_like_target(job, keywords):
+
+        raw_list = data.get("jobs", data.get("data", [])) if isinstance(data, dict) else data
+        for job_raw in (raw_list or []):
+            if len(jobs) >= max_jobs:
+                break
+            try:
+                job = _parse_job(job_raw)
+            except Exception:
+                continue
+            if job["job_url"] in seen_urls:
+                continue
+            seen_urls.add(job["job_url"])
             jobs.append(job)
-        time.sleep(0.1)
 
     print(f"[Himalayas] {len(jobs)} matching job(s) found")
     return jobs
 
 
 if __name__ == "__main__":
+    print("Testing Himalayas search endpoint with keyword 'junior'...")
     try:
-        resp = requests.get(API_URL, headers=HEADERS, timeout=15)
+        resp = requests.get(SEARCH_URL, params={"keyword": "junior", "limit": 1}, headers=HEADERS, timeout=15)
+        resp.raise_for_status()
         data = resp.json()
-        raw_jobs = data.get("jobs", data) if isinstance(data, dict) else data
-        print("Raw shape of first job (verify field names against this):")
+        print("Raw response shape (verify field names against this if parsing breaks):")
         import json
-        print(json.dumps(raw_jobs[0], indent=2)[:1500])
+        print(json.dumps(data, indent=2)[:1500])
     except Exception as e:
         print(f"Could not fetch sample job: {e}")

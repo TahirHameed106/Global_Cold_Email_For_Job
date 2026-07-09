@@ -11,7 +11,7 @@ import re
 import time
 import requests
 import feedparser
-from .base import normalize_job
+from .base import normalize_job, keyword_matches
 
 FEED_URL = "https://weworkremotely.com/categories/remote-programming-jobs.rss"
 HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; JobSearchBot/1.0)"}
@@ -22,8 +22,8 @@ def _strip_html(raw_html):
 
 
 def _looks_like_target(title, description, keywords):
-    text = f"{title} {description}".lower()
-    return any(kw.lower() in text for kw in keywords)
+    text = f"{title} {description}"
+    return keyword_matches(text, keywords)
 
 
 def fetch_jobs(keywords, employment_types=None, max_jobs=25, **kwargs):

@@ -1,62 +1,157 @@
 {
-  "_readme": "This is the ONLY place your real experience lives. The CV tailor engine selects and reorders items from here for each job — it never invents anything not listed here. Fill this in honestly and as completely as you can; the more detail here, the better the tailored CVs will be.",
+  "_readme": "This is the ONLY place your real experience lives. The CV tailor engine selects and reorders items from here for each job — it never invents anything not listed here.",
 
   "summary_variants": {
-    "general": "Software engineering student with hands-on project experience in full-stack development, eager to contribute to a fast-moving startup team.",
-    "frontend": "Frontend-focused software engineering student experienced with modern JavaScript frameworks and responsive UI development.",
-    "backend": "Backend-focused software engineering student with experience building APIs, working with databases, and writing clean, testable code."
+    "general": "Software Engineering student (6th semester, Bahria University) with hands-on full-stack development experience across React.js, Next.js, Node.js, and C#/.NET, plus a working internship building production web apps. Comfortable across frontend, backend, and quality assurance work, with a strong grounding in OOP, SOLID principles, and Data Structures & Algorithms.",
+    "frontend": "Frontend-focused Software Engineering student experienced with React.js, Next.js 15 (App Router), and Tailwind CSS v4. Currently interning as a Frontend Developer, having shipped a production restaurant website and a freelance marketplace platform with reusable component systems and custom React hooks.",
+    "backend": "Backend-focused Software Engineering student experienced building RESTful APIs with Node.js/Express and C#/.NET, with JWT authentication, MongoDB/SQL Server database design (3NF), and the MVC/BFF architecture patterns. Applies SOLID principles and writes unit-tested, maintainable backend code.",
+    "qa": "Detail-oriented Software Engineering student with hands-on exposure to API testing, unit testing, and SQL-based data validation. Grounded in STLC/SDLC and Agile methodologies (Scrum, Kanban, XP). Writes reproducible test cases, validates JSON responses and edge cases with Postman, and tracks defects through to resolution."
   },
 
   "skills": [
-    { "name": "JavaScript", "tags": ["frontend", "backend"] },
-    { "name": "Python", "tags": ["backend", "general"] },
-    { "name": "React", "tags": ["frontend"] },
+    { "name": "JavaScript (ES6+)", "tags": ["frontend", "backend"] },
+    { "name": "React.js", "tags": ["frontend"] },
+    { "name": "Next.js 15 (App Router)", "tags": ["frontend"] },
+    { "name": "Tailwind CSS v4", "tags": ["frontend"] },
+    { "name": "HTML5 / CSS3", "tags": ["frontend"] },
     { "name": "Node.js", "tags": ["backend"] },
-    { "name": "SQL", "tags": ["backend"] },
+    { "name": "Express.js", "tags": ["backend"] },
+    { "name": "RESTful API Design", "tags": ["backend", "qa"] },
+    { "name": "JWT Authentication", "tags": ["backend"] },
+    { "name": "BFF Architecture", "tags": ["backend"] },
+    { "name": "MVC Pattern", "tags": ["backend", "general"] },
+    { "name": "MongoDB (Mongoose)", "tags": ["backend"] },
+    { "name": "SQL / MS SQL Server (T-SQL, 3NF design)", "tags": ["backend", "qa"] },
+    { "name": "C#", "tags": ["backend", "general"] },
+    { "name": ".NET Core Web API", "tags": ["backend"] },
+    { "name": "ASP.NET Web Forms (.aspx / .asmx)", "tags": ["backend"] },
+    { "name": "Python", "tags": ["backend", "general", "qa"] },
+    { "name": "Java", "tags": ["general"] },
+    { "name": "C++", "tags": ["general"] },
+    { "name": "SOLID Principles", "tags": ["backend", "general"] },
+    { "name": "Object-Oriented Programming (OOP)", "tags": ["general"] },
+    { "name": "Data Structures & Algorithms", "tags": ["general"] },
+    { "name": "Asynchronous Programming (Async/Await)", "tags": ["backend"] },
+    { "name": "Unit Testing (NUnit / xUnit basics)", "tags": ["qa", "backend"] },
+    { "name": "Manual, API, Regression, Black-Box & White-Box Testing", "tags": ["qa"] },
+    { "name": "Postman (API testing & documentation)", "tags": ["qa", "backend"] },
+    { "name": "STLC / SDLC", "tags": ["qa"] },
+    { "name": "Agile (Scrum, Kanban, XP)", "tags": ["qa", "general"] },
     { "name": "Git / GitHub", "tags": ["general"] },
-    { "name": "REST APIs", "tags": ["backend"] },
-    { "name": "HTML / CSS", "tags": ["frontend"] }
+    { "name": "Vercel Deployment", "tags": ["frontend", "general"] }
   ],
 
   "projects": [
     {
-      "id": "proj_1",
-      "title": "Example: Task Management Web App",
-      "tags": ["frontend", "backend", "general"],
+      "id": "proj_ember_oak",
+      "title": "Ember & Oak — Restaurant Website (Internship deliverable)",
+      "tags": ["frontend", "general"],
       "bullets": [
-        "Built a full-stack task management app using React and Node.js, used by 30+ classmates during a semester project",
-        "Designed a REST API with Express and PostgreSQL for task CRUD operations and user authentication",
-        "Deployed the app using free-tier hosting (Render/Vercel) and set up CI with GitHub Actions"
+        "Built a full production restaurant website (React + Vite + CSS) with 4 pages, dark/light mode, scroll animations, live menu search, and category filtering",
+        "Implemented contact form validation and a Google Maps embed for location display",
+        "Developed reusable custom React hooks (useScrollReveal, useCounter) and used Context API for global theme management"
       ]
     },
     {
-      "id": "proj_2",
-      "title": "Example: Personal Portfolio + Blog",
-      "tags": ["frontend", "general"],
+      "id": "proj_skillbridge",
+      "title": "SkillBridge — Freelance Marketplace Platform (Internship deliverable)",
+      "tags": ["frontend", "backend", "general"],
       "bullets": [
-        "Developed a responsive personal portfolio site using React and Tailwind CSS",
-        "Implemented a Markdown-based blog engine with static site generation for fast load times"
+        "Built a freelance marketplace platform using Next.js 15 (App Router) and Tailwind CSS v4, including home, services, seller profile, and service detail pages",
+        "Deployed the application live on Vercel",
+        "Implemented reusable component systems shared across pages for consistent UI"
+      ]
+    },
+    {
+      "id": "proj_tipninja",
+      "title": "TipNinja — Airbnb Clone (MERN Stack)",
+      "tags": ["frontend", "backend", "qa", "general"],
+      "bullets": [
+        "Built a marketplace platform with Express.js, EJS, and Tailwind CSS v4 following the MVC design pattern",
+        "Implemented dynamic listing features and a secure backend architecture with a fully responsive UI for mobile and desktop",
+        "Performed functional and integration testing across user flows including listing creation, session management, and cross-device UI responsiveness",
+        "Validated secure JWT authentication workflows by testing authorization headers, token expiry, and role-based access edge cases",
+        "Tracked and documented defects found during development, maintaining a defect log with reproduction steps, severity, and resolution status"
+      ]
+    },
+    {
+      "id": "proj_broker_free",
+      "title": "Broker-Free Real Estate Platform (MERN Stack)",
+      "tags": ["backend", "qa", "general"],
+      "bullets": [
+        "Engineered a scalable property listing platform with CRUD operations, JWT authentication, and role-based access control",
+        "Designed RESTful APIs tailored to UI requirements and optimized data fetch speeds across all endpoints",
+        "Designed and manually tested RESTful API endpoints for property listings, authentication, and CRUD operations using Postman",
+        "Validated JSON response structure, HTTP status codes, and edge-case inputs (empty fields, invalid tokens, duplicate entries) across multiple environments",
+        "Identified and resolved data inconsistency issues between frontend requests and backend responses during integration"
+      ]
+    },
+    {
+      "id": "proj_buildflow_markethub",
+      "title": "BuildFlow / MarketHub — Multi-Vendor E-commerce & Construction Management Platform",
+      "tags": ["frontend", "backend", "general"],
+      "bullets": [
+        "Developed a multi-vendor e-commerce marketplace and a separate construction management platform using React.js and MongoDB",
+        "Focused on state management, real-time data handling, and scalable component architecture"
+      ]
+    },
+    {
+      "id": "proj_inventory_mgmt",
+      "title": "Inventory Management System (C# / SQL Server, Desktop Application)",
+      "tags": ["backend", "qa", "general"],
+      "bullets": [
+        "Engineered a multi-tier management tool applying SOLID principles for modular, maintainable code architecture",
+        "Designed a normalized relational database schema (3rd Normal Form) to ensure data integrity and query efficiency for high-frequency transactions",
+        "Implemented automated unit tests using NUnit/xUnit basics to verify core business logic including stock calculations and edge cases",
+        "Wrote SQL queries to validate data integrity and referential consistency across the schema, and used Postman for endpoint testing"
+      ]
+    },
+    {
+      "id": "proj_legacy_web_services",
+      "title": "Legacy Web Services & System Maintenance (ASP.NET / C#)",
+      "tags": ["backend", "general"],
+      "bullets": [
+        "Managed and debugged server-side logic within ASPX pages and ASMX services, ensuring data consistency between legacy frontends and SQL backends",
+        "Developed and documented RESTful endpoints to facilitate transition from legacy SOAP services to modern web architectures",
+        "Used Postman for request validation and environment-based testing of XML and JSON responses"
+      ]
+    },
+    {
+      "id": "proj_algorithm_modules",
+      "title": "Algorithm & Logic Modules (Python / C#)",
+      "tags": ["general", "backend", "qa"],
+      "bullets": [
+        "Implemented sorting and searching algorithms with a focus on Time and Space Complexity (Big O)",
+        "Automated repetitive data parsing and input/output validation tasks using Python scripts, reducing manual verification effort",
+        "Tested algorithm outputs against expected results using assertion-based logic, validating correctness across multiple input sets"
       ]
     }
   ],
 
   "experience": [
     {
-      "id": "exp_1",
-      "title": "Example: University Coding Club — Contributor",
-      "tags": ["general"],
+      "id": "exp_softgrid",
+      "title": "Frontend Developer Intern — SoftGrid Solutions (2025 – Present)",
+      "tags": ["frontend", "general"],
       "bullets": [
-        "Contributed to 3 open-source-style club projects, collaborating with a team of 4 using Git branching workflows",
-        "Ran a beginner workshop on Git and GitHub for 20+ first-year students"
+        "Delivered two production applications during the internship: a restaurant website (Ember & Oak) and a freelance marketplace platform (SkillBridge)",
+        "Implemented reusable component systems, custom React hooks, and Context API for global theme management across projects",
+        "Worked directly within a live production environment, shipping features used by real end users"
       ]
     }
   ],
 
   "education": {
-    "institute": "Your Institute",
-    "degree": "BSc Computer Science / Software Engineering",
-    "graduation_year": "2026",
-    "cgpa": "X.XX/4.0",
-    "coursework": ["Data Structures & Algorithms", "Databases", "Web Development", "Software Engineering"]
-  }
+    "institute": "Bahria University, Karachi Campus (BUKC)",
+    "degree": "BSc Software Engineering",
+    "graduation_year": "2027 (expected)",
+    "cgpa": "3.13/4.00",
+    "coursework": ["Web Engineering", "Database Management Systems", "Data Structures & Algorithms", "Operating Systems", "Software Design & Architecture", "Object-Oriented Programming", "Software Testing & Quality Assurance", "Parallel & Distributed Computing"]
+  },
+
+  "certifications": [
+    "Coursera — MERN Stack Development: Dynamic Web Applications (UI/UX, REST APIs, MongoDB, Express, React, Node.js)",
+    "Coursera — Software Development Life Cycle (SDLC): Testing phases, QA frameworks",
+    "Coursera — C# Programming Fundamentals (OOP, DSA, Test-Driven Logic)"
+  ]
 }

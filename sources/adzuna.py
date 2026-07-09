@@ -30,14 +30,24 @@ COUNTRY_CODES = {
 
 def _fetch_for_country(country_name, country_code, keywords, app_id, app_key, max_jobs):
     jobs = []
-    query = " ".join(keywords[:3])  # Adzuna works best with a short focused query
+    # BUG FIX: joining multiple keyword phrases into one "what" param makes
+    # Adzuna AND-match every single word across all phrases combined — nearly
+    # impossible to satisfy. "what_or" instead OR-matches individual words,
+    # which is what we actually want at this loose collection stage (the AI
+    # matcher in core/matcher.py does the real strict filtering later).
+    stopwords = {"the", "and", "for", "with", "a", "an", "of", "in", "at"}
+    words = set()
+    for kw in keywords:
+        words |= {w for w in kw.lower().split() if len(w) > 2 and w not in stopwords}
+    query = " ".join(words)
+
     url = BASE_URL.format(country=country_code, page=1)
 
     params = {
         "app_id": app_id,
         "app_key": app_key,
         "results_per_page": min(max_jobs, 50),
-        "what": query,
+        "what_or": query,
         "full_time": 0,
         "sort_by": "date",
     }
