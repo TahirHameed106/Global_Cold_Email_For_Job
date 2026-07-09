@@ -4,6 +4,8 @@ rest of the pipeline (matcher, tailor, sender) never needs to know or care
 which site a job came from.
 """
 
+import re
+
 JOB_SCHEMA_EXAMPLE = {
     "source": "RemoteOK",
     "title": "Junior Backend Developer",
@@ -30,7 +32,12 @@ def normalize_job(**kwargs):
 _STOPWORDS = {"the", "and", "for", "with", "using", "via", "a", "an", "of", "in", "at", "to"}
 
 
-def keyword_matches(text, keywords, min_hits=1):
+def _word_hits(text_lower, phrase):
+    words = [w for w in re.findall(r"[a-z0-9]+", phrase.lower()) if len(w) > 2 and w not in _STOPWORDS]
+    return sum(1 for w in words if re.search(rf"\b{re.escape(w)}\b", text_lower))
+
+
+def keyword_matches(text, keywords, min_hits=2):
     """
     Loose, word-level keyword match — replaces fragile exact-phrase matching.
 
@@ -46,8 +53,8 @@ def keyword_matches(text, keywords, min_hits=1):
     """
     text_lower = text.lower()
     for kw in keywords:
-        words = [w for w in kw.lower().split() if len(w) > 2 and w not in _STOPWORDS]
-        hits = sum(1 for w in words if w in text_lower)
-        if hits >= min_hits:
+        words = [w for w in re.findall(r"[a-z0-9]+", kw.lower()) if len(w) > 2 and w not in _STOPWORDS]
+        required_hits = min(min_hits, len(words)) if words else min_hits
+        if _word_hits(text_lower, kw) >= required_hits:
             return True
     return False

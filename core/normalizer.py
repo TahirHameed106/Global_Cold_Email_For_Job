@@ -6,6 +6,33 @@ company-size / employment-type / country preferences.
 import re
 
 
+_EMPLOYMENT_TYPE_PATTERNS = {
+    "internship": [
+        r"\bintern(?:ship)?\b",
+        r"\btrainee\b",
+        r"\bapprentice\b",
+        r"\bco[-\s]?op\b",
+        r"\bworking\s+student\b",
+        r"\bstudent\s+worker\b",
+    ],
+    "junior": [
+        r"\bjunior\b",
+        r"\bjr\.?\b",
+        r"\bentry[-\s]level\b",
+        r"\bnew[-\s](?:grad|graduate)\b",
+        r"\bfresher\b",
+        r"\bassociate\s+(?:engineer|developer|software\s+engineer|software\s+developer)\b",
+    ],
+    "volunteer": [
+        r"\bvolunteer(?:ing|ed)?\b",
+        r"\bunpaid\b",
+        r"\bpro\s+bono\b",
+        r"\bcommunity\s+contributor\b",
+        r"\bopen\s+source\s+contributor\b",
+    ],
+}
+
+
 def dedupe(jobs):
     """Remove duplicate postings (same company + same title) across sources."""
     seen = set()
@@ -24,7 +51,11 @@ def _employment_type_matches(job, wanted_types):
     and description text for the wanted keywords too.
     """
     text = f"{job['title']} {job['description']}".lower()
-    return any(t.lower() in text for t in wanted_types)
+    for wanted_type in wanted_types:
+        patterns = _EMPLOYMENT_TYPE_PATTERNS.get(wanted_type.lower(), [rf"\b{re.escape(wanted_type.lower())}\b"])
+        if any(re.search(pattern, text) for pattern in patterns):
+            return True
+    return False
 
 
 def _company_size_ok(job, size_min, size_max):
