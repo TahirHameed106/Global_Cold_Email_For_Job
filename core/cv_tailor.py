@@ -21,8 +21,9 @@ import json
 import re
 from google import genai
 from docx import Document
-from docx.shared import Pt, Inches
+from docx.shared import Pt, Inches, RGBColor
 from docx.enum.text import WD_ALIGN_PARAGRAPH
+from core.matcher import GEMINI_MODEL_CANDIDATES, _generate_with_fallback
 
 
 def _all_allowed_terms(skill_bank):
