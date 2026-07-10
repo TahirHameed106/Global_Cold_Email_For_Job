@@ -27,6 +27,26 @@ def _flatten_skill_bank(skill_bank):
     return "\n".join(lines)
 
 
+# Google has been retiring gemini-2.5-flash inconsistently ahead of its
+# official shutdown date. "gemini-flash-latest" is an auto-updating alias
+# Google maintains to always point at their current fast model, so this
+# stays working without needing another manual fix later. A couple of
+# explicit fallbacks are tried too in case the alias itself has an outage.
+GEMINI_MODEL_CANDIDATES = ["gemini-flash-latest", "gemini-2.5-flash", "gemini-3.1-flash-lite"]
+
+
+def _generate_with_fallback(client, prompt):
+    """Try each candidate model in order; return the first one that works."""
+    last_error = None
+    for model_name in GEMINI_MODEL_CANDIDATES:
+        try:
+            return client.models.generate_content(model=model_name, contents=prompt)
+        except Exception as e:
+            last_error = e
+            continue
+    raise last_error
+
+
 def score_match(job_title, job_description, skill_bank, api_key=None):
     """
     Returns:
@@ -61,10 +81,7 @@ Return ONLY valid JSON in exactly this shape, nothing else:
 
     try:
         client = genai.Client(api_key=api_key or os.getenv("GEMINI_API_KEY"))
-        response = client.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=prompt
-        )
+        response = _generate_with_fallback(client, prompt)
         text = response.text.strip()
         text = re.sub(r"^```json|```$", "", text.strip(), flags=re.MULTILINE).strip()
         result = json.loads(text)
