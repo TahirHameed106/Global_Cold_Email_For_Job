@@ -2,14 +2,16 @@
 matcher.py — Field-agnostic CV-to-job match scoring.
 
 Works for ANY field because it never hardcodes skill names — it just hands
-your skill_bank.json and the job description to Gemini and asks for an
-honest percentage + which skills genuinely overlap.
+your skill_bank.json and the job description to an LLM and asks for an
+honest percentage + which skills genuinely overlap. Uses core/llm_client.py,
+which tries Gemini, then Groq, then OpenRouter — so one provider's outage
+doesn't stop scoring.
 """
 
 import os
 import json
 import re
-from google import genai
+from core.llm_client import generate_text
 
 
 def _flatten_skill_bank(skill_bank):
@@ -27,26 +29,6 @@ def _flatten_skill_bank(skill_bank):
     return "\n".join(lines)
 
 
-# Google has been retiring gemini-2.5-flash inconsistently ahead of its
-# official shutdown date. "gemini-flash-latest" is an auto-updating alias
-# Google maintains to always point at their current fast model, so this
-# stays working without needing another manual fix later. A couple of
-# explicit fallbacks are tried too in case the alias itself has an outage.
-GEMINI_MODEL_CANDIDATES = ["gemini-flash-latest", "gemini-2.5-flash", "gemini-3.1-flash-lite"]
-
-
-def _generate_with_fallback(client, prompt):
-    """Try each candidate model in order; return the first one that works."""
-    last_error = None
-    for model_name in GEMINI_MODEL_CANDIDATES:
-        try:
-            return client.models.generate_content(model=model_name, contents=prompt)
-        except Exception as e:
-            last_error = e
-            continue
-    raise last_error
-
-
 def score_match(job_title, job_description, skill_bank, api_key=None):
     """
     Returns:
@@ -56,7 +38,7 @@ def score_match(job_title, job_description, skill_bank, api_key=None):
           "missing_skills": [str, ...],
           "reasoning": str
         }
-    Falls back to a simple keyword-overlap score if the API call fails.
+    Falls back to a simple keyword-overlap score only if ALL LLM providers fail.
     """
     profile_text = _flatten_skill_bank(skill_bank)
 
@@ -80,16 +62,14 @@ Return ONLY valid JSON in exactly this shape, nothing else:
 }}"""
 
     try:
-        client = genai.Client(api_key=api_key or os.getenv("GEMINI_API_KEY"))
-        response = _generate_with_fallback(client, prompt)
-        text = response.text.strip()
-        text = re.sub(r"^```json|```$", "", text.strip(), flags=re.MULTILINE).strip()
+        text = generate_text(prompt, gemini_key=api_key).strip()
+        text = re.sub(r"^```json|```$", "", text, flags=re.MULTILINE).strip()
         result = json.loads(text)
         result["score"] = int(result.get("score", 0))
         return result
 
     except Exception as e:
-        print(f"[matcher] AI scoring failed ({e}), using keyword fallback")
+        print(f"[matcher] All LLM providers failed ({e}), using keyword fallback")
         return _keyword_fallback_score(job_description, skill_bank)
 
 
