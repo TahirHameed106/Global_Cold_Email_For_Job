@@ -19,11 +19,10 @@ achievement that isn't already present somewhere in skill_bank.json.
 import os
 import json
 import re
-from google import genai
 from docx import Document
 from docx.shared import Pt, Inches, RGBColor
 from docx.enum.text import WD_ALIGN_PARAGRAPH
-from core.matcher import GEMINI_MODEL_CANDIDATES, _generate_with_fallback
+from core.llm_client import generate_text
 
 
 def _all_allowed_terms(skill_bank):
@@ -36,7 +35,7 @@ def rewrite_bullets_with_ai(bullets, job_description, allowed_terms, api_key=Non
     """
     Ask the AI to rephrase bullets to mirror the JD's language, with an
     explicit instruction not to add any new tools/skills/claims.
-    Falls back to the original bullets untouched if the API call fails.
+    Falls back to the original bullets untouched if every LLM provider fails.
     """
     prompt = f"""Rewrite these resume bullet points so their PHRASING mirrors
 the language and keywords used in the job description below. Do NOT add any
@@ -52,9 +51,8 @@ ORIGINAL BULLETS:
 Return ONLY the rewritten bullets, one per line, no numbering, no extra text."""
 
     try:
-        client = genai.Client(api_key=api_key or os.getenv("GEMINI_API_KEY"))
-        response = client.models.generate_content(model="gemini-2.5-flash", contents=prompt)
-        new_bullets = [line.strip("- ").strip() for line in response.text.strip().split("\n") if line.strip()]
+        raw_text = generate_text(prompt, gemini_key=api_key)
+        new_bullets = [line.strip("- ").strip() for line in raw_text.strip().split("\n") if line.strip()]
 
         # Safety check: reject the rewrite if it introduces a term not in the
         # allowed skill list AND not present in any original bullet (crude but effective).
