@@ -24,6 +24,9 @@ import os
 import sys
 import time
 import json
+import re
+import requests
+from urllib.parse import urlparse
 import yaml
 import schedule as schedule_lib
 from dotenv import load_dotenv
@@ -34,7 +37,7 @@ from sources import remoteok, weworkremotely, himalayas, wellfound, adzuna, joob
 from core.normalizer import dedupe, filter_jobs
 from core.matcher import score_match
 from core.cv_tailor import build_tailored_cv_data, render_cv_docx
-from core.contact_finder import detect_company_pattern, build_email, verify_email
+from core.contact_finder import detect_company_pattern, build_email, verify_email, has_mx
 from core.sender import send_with_delay
 from core.tracker import log_application, already_applied, is_unsubscribed, get_stats
 
@@ -94,11 +97,38 @@ def collect_jobs(profile):
     return all_jobs
 
 
-def guess_company_domain(job):
-    """If a source didn't give us a domain, make a best-effort guess from the company name."""
+def resolve_real_domain(job):
+    """
+    Get the company's ACTUAL domain instead of guessing one from their name.
+    Job board URLs (RemoteOK, WeWorkRemotely, Adzuna, etc.) almost always
+    redirect to the company's real "Apply" page — following that redirect
+    chain gives us their genuine domain instead of a blind guess like
+    "Arabian Private Holdings" -> "arabianprivateholdings.com" (usually wrong).
+
+    Falls back to a name-based guess ONLY if the job has no usable URL,
+    and that guess is validated by has_mx() before ever being used to send.
+    """
     if job.get("company_domain"):
         return job["company_domain"]
-    slug = "".join(ch for ch in job["company"].lower() if ch.isalnum())
+
+    job_url = job.get("job_url", "")
+    if job_url:
+        try:
+            resp = requests.head(job_url, allow_redirects=True, timeout=10,
+                                  headers={"User-Agent": "Mozilla/5.0 (compatible; JobSearchBot/1.0)"})
+            final_domain = urlparse(resp.url).netloc.replace("www.", "")
+            # Skip if it redirected to another job board rather than the company's own site
+            job_board_domains = {"remoteok.com", "weworkremotely.com", "himalayas.app",
+                                  "adzuna.com", "indeed.com", "linkedin.com", "wellfound.com"}
+            if final_domain and not any(jb in final_domain for jb in job_board_domains):
+                return final_domain
+        except Exception:
+            pass  # falls through to the name-based guess below
+
+    # Last resort: guess from company name, stripping parenthetical region
+    # tags like "(MENA)" or "(UK)" that aren't part of the actual brand name
+    company_clean = re.sub(r"\([^)]*\)", "", job["company"]).strip()
+    slug = "".join(ch for ch in company_clean.lower() if ch.isalnum())
     return f"{slug}.com"
 
 
@@ -108,8 +138,16 @@ def find_best_contact(job, contact_priority):
     company's own site pattern detection + free SMTP verification.
     Never scrapes LinkedIn or guesses a named individual's personal email
     without first confirming a real pattern from the company's own site.
+
+    IMPORTANT: if the domain doesn't even have a mail server (has_mx is
+    False), we do NOT send — a guessed domain that doesn't exist at all is
+    a certain bounce, not an "unknown, might as well try."
     """
-    domain = guess_company_domain(job)
+    domain = resolve_real_domain(job)
+
+    if not has_mx(domain):
+        print(f"[main] '{domain}' has no mail server at all — skipping, not guessing further.")
+        return None, "none"
 
     pattern_info = detect_company_pattern(domain, known_people=None)
     seed_emails = pattern_info.get("seed_emails", [])
@@ -137,10 +175,19 @@ def find_best_contact(job, contact_priority):
         fallback = f"hello@{domain}"
         verdict = verify_email(fallback)
 
-    if verdict in ("valid", "catch_all", "unknown"):
-        confidence = "catchall_fallback" if verdict == "catch_all" else "guessed_unconfirmed"
-        return fallback, confidence
+    # Only "valid" or "catch_all" (domain exists, mailbox check inconclusive)
+    # are acceptable now. A domain that resolves but where we truly can't
+    # confirm ANY mailbox status ("unknown" for reasons other than no-MX,
+    # e.g. the receiving server timed out) is now also rejected rather than
+    # guessed-and-sent — since we already confirmed the domain is real via
+    # has_mx() above, "unknown" here means the specific mailbox is unconfirmed,
+    # which is still too risky for a guessed address.
+    if verdict == "valid":
+        return fallback, "guessed_unconfirmed"
+    if verdict == "catch_all":
+        return fallback, "catchall_fallback"
 
+    print(f"[main] Could not confirm any mailbox at '{domain}' (verdict: {verdict}) — skipping rather than guessing blind.")
     return None, "none"
 
 
@@ -201,15 +248,36 @@ def run_pipeline():
             print(f"[main] {to_email} previously unsubscribed, skipping.")
             continue
 
+        top_project = tailored["projects"][0] if tailored.get("projects") else None
+        edu = tailored.get("education", {})
+        links = candidate.get("links", {})
+        link_line = " | ".join(v for v in [links.get("github", ""), links.get("linkedin", "")] if v)
+
         subject = f"{job['title']} application — {candidate['name']}"
         body = (
             f"Hi,\n\n"
-            f"I'm {candidate['name']}, {candidate['headline']}. "
-            f"I came across the {job['title']} opening at {job['company']} and wanted to apply directly.\n\n"
-            f"My background lines up closely with what you're looking for "
-            f"({', '.join(match['matching_skills'][:4])}), and I've attached a CV tailored to this role.\n\n"
-            f"Would love the chance to talk. Thanks for your time.\n\n"
-            f"Best,\n{candidate['name']}"
+            f"I'm {candidate['name']}, a {candidate['headline']} based in {candidate.get('location','')}. "
+            f"I came across the {job['title']} opening at {job['company']} and wanted to apply directly, "
+            f"since it lines up closely with what I've been building.\n\n"
+            f"A quick snapshot of relevant background: "
+            f"{', '.join(match['matching_skills'][:5])}.\n\n"
+        )
+        if top_project:
+            body += (
+                f"Most relevant recent work — {top_project['title']}: "
+                f"{top_project['bullets'][0]}\n\n"
+            )
+        if edu:
+            body += (
+                f"I'm currently a {edu.get('degree','')} student at {edu.get('institute','')} "
+                f"(CGPA {edu.get('cgpa','')}), and comfortable working independently in a small, fast-moving team.\n\n"
+            )
+        body += "I've attached a CV tailored to this specific role.\n\n"
+        if link_line:
+            body += f"{link_line}\n\n"
+        body += (
+            f"Happy to jump on a quick call whenever works for you. Thanks for your time.\n\n"
+            f"Best,\n{candidate['name']}\n{candidate.get('phone','')}"
         )
 
         success = send_with_delay(
