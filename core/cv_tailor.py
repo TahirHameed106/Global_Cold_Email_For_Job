@@ -128,6 +128,14 @@ def build_tailored_cv_data(job_title, job_description, skill_bank, match_result,
     projects = sorted(skill_bank.get("projects", []), key=relevance, reverse=True)
     experience = sorted(skill_bank.get("experience", []), key=relevance, reverse=True)
 
+    # Cap to the most relevant few — a junior/intern CV should be ~1 page.
+    # Including all projects every time regardless of relevance produced a
+    # 3-page CV in testing, which reads as unfocused rather than thorough.
+    MAX_PROJECTS = 4
+    MAX_EXPERIENCE = 3
+    projects = projects[:MAX_PROJECTS]
+    experience = experience[:MAX_EXPERIENCE]
+
     for p in projects:
         p = dict(p)
         p["bullets"] = rewrite_bullets_with_ai(p["bullets"], job_description, allowed_terms, api_key)
@@ -147,13 +155,65 @@ def build_tailored_cv_data(job_title, job_description, skill_bank, match_result,
 
 
 def render_cv_docx(candidate, tailored_data, output_path):
-    """Render the tailored CV data into a clean, simple .docx file."""
+    """Render the tailored CV data into a clean, professional-looking .docx file."""
+    from docx.oxml.ns import qn
+    from docx.oxml import OxmlElement
+
+    ACCENT_COLOR = RGBColor(0x1F, 0x3A, 0x5F)  # dark navy — professional, ATS-safe
+    BODY_FONT = "Calibri"
+
     doc = Document()
 
+    # Tighter margins so more real content fits on one page
+    for section in doc.sections:
+        section.top_margin = Inches(0.5)
+        section.bottom_margin = Inches(0.5)
+        section.left_margin = Inches(0.7)
+        section.right_margin = Inches(0.7)
+
+    # Set a sane default font for the whole document instead of Word's default Calibri-but-inconsistent-sizing
+    normal_style = doc.styles["Normal"]
+    normal_style.font.name = BODY_FONT
+    normal_style.font.size = Pt(10.5)
+    normal_style.paragraph_format.space_after = Pt(4)
+
+    def add_section_heading(text):
+        """A heading with a bottom border line under it, like a real resume section divider."""
+        p = doc.add_paragraph()
+        p.paragraph_format.space_before = Pt(10)
+        p.paragraph_format.space_after = Pt(4)
+        run = p.add_run(text.upper())
+        run.font.bold = True
+        run.font.size = Pt(11.5)
+        run.font.color.rgb = ACCENT_COLOR
+        run.font.name = BODY_FONT
+
+        p_border = OxmlElement("w:pBdr")
+        bottom = OxmlElement("w:bottom")
+        bottom.set(qn("w:val"), "single")
+        bottom.set(qn("w:sz"), "6")
+        bottom.set(qn("w:space"), "1")
+        bottom.set(qn("w:color"), "1F3A5F")
+        p_border.append(bottom)
+        p._p.get_or_add_pPr().append(p_border)
+        return p
+
+    def add_bullet(text):
+        p = doc.add_paragraph(text, style="List Bullet")
+        p.paragraph_format.space_after = Pt(2)
+        for run in p.runs:
+            run.font.size = Pt(10.5)
+            run.font.name = BODY_FONT
+        return p
+
+    # ── Header: name + contact line ──
     name_p = doc.add_paragraph()
+    name_p.paragraph_format.space_after = Pt(2)
     name_run = name_p.add_run(candidate.get("name", "Your Name"))
-    name_run.font.size = Pt(20)
+    name_run.font.size = Pt(22)
     name_run.font.bold = True
+    name_run.font.color.rgb = ACCENT_COLOR
+    name_run.font.name = BODY_FONT
     name_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
     contact_bits = [candidate.get("email", ""), candidate.get("phone", ""), candidate.get("location", "")]
@@ -161,42 +221,71 @@ def render_cv_docx(candidate, tailored_data, output_path):
     contact_bits += [v for v in links.values() if v]
     contact_p = doc.add_paragraph(" | ".join(b for b in contact_bits if b))
     contact_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    contact_p.paragraph_format.space_after = Pt(8)
+    for run in contact_p.runs:
+        run.font.size = Pt(9.5)
+        run.font.color.rgb = RGBColor(0x55, 0x55, 0x55)
 
-    doc.add_paragraph()
+    # ── Summary ──
+    add_section_heading("Summary")
+    summary_p = doc.add_paragraph(tailored_data["summary"])
+    for run in summary_p.runs:
+        run.font.size = Pt(10.5)
 
-    doc.add_heading("Summary", level=2)
-    doc.add_paragraph(tailored_data["summary"])
+    # ── Skills ──
+    add_section_heading("Skills")
+    skills_p = doc.add_paragraph(" • ".join(tailored_data["skills"]))
+    for run in skills_p.runs:
+        run.font.size = Pt(10)
 
-    doc.add_heading("Skills", level=2)
-    doc.add_paragraph(", ".join(tailored_data["skills"]))
-
+    # ── Projects ──
     if tailored_data["projects"]:
-        doc.add_heading("Projects", level=2)
+        add_section_heading("Projects")
         for p in tailored_data["projects"]:
             title_p = doc.add_paragraph()
-            title_p.add_run(p["title"]).bold = True
+            title_p.paragraph_format.space_before = Pt(6)
+            title_p.paragraph_format.space_after = Pt(2)
+            title_run = title_p.add_run(p["title"])
+            title_run.bold = True
+            title_run.font.size = Pt(10.5)
+            title_run.font.name = BODY_FONT
             for bullet in p["bullets"]:
-                doc.add_paragraph(bullet, style="List Bullet")
+                add_bullet(bullet)
 
+    # ── Experience ──
     if tailored_data["experience"]:
-        doc.add_heading("Experience", level=2)
+        add_section_heading("Experience")
         for e in tailored_data["experience"]:
             title_p = doc.add_paragraph()
-            title_p.add_run(e["title"]).bold = True
+            title_p.paragraph_format.space_before = Pt(6)
+            title_p.paragraph_format.space_after = Pt(2)
+            title_run = title_p.add_run(e["title"])
+            title_run.bold = True
+            title_run.font.size = Pt(10.5)
+            title_run.font.name = BODY_FONT
             for bullet in e["bullets"]:
-                doc.add_paragraph(bullet, style="List Bullet")
+                add_bullet(bullet)
 
+    # ── Education ──
     edu = tailored_data.get("education", {})
     if edu:
-        doc.add_heading("Education", level=2)
-        doc.add_paragraph(f"{edu.get('degree','')} — {edu.get('institute','')}")
-        doc.add_paragraph(f"Graduating {edu.get('graduation_year','')} | CGPA {edu.get('cgpa','')}")
+        add_section_heading("Education")
+        edu_p1 = doc.add_paragraph(f"{edu.get('degree','')} — {edu.get('institute','')}")
+        edu_p1.runs[0].bold = True
+        edu_p1.runs[0].font.size = Pt(10.5)
+        edu_p2 = doc.add_paragraph(f"Graduating {edu.get('graduation_year','')}  |  CGPA {edu.get('cgpa','')}")
+        edu_p2.runs[0].font.size = Pt(10)
+        if edu.get("coursework"):
+            edu_p3 = doc.add_paragraph(f"Relevant coursework: {', '.join(edu['coursework'])}")
+            edu_p3.runs[0].font.size = Pt(9.5)
+            edu_p3.runs[0].font.color.rgb = RGBColor(0x55, 0x55, 0x55)
 
+    # ── Certifications ──
     certifications = tailored_data.get("certifications", [])
     if certifications:
-        doc.add_heading("Certifications", level=2)
+        add_section_heading("Certifications")
         for cert in certifications:
-            doc.add_paragraph(cert, style="List Bullet")
+            add_bullet(cert)
 
     doc.save(output_path)
     print(f"[cv_tailor] Tailored CV saved -> {output_path}")
