@@ -174,6 +174,16 @@ def get_mx_host(domain):
         return None
 
 
+def has_mx(domain):
+    """
+    True only if this domain has a real mail server configured — i.e. the
+    domain actually exists and can receive email at all. Use this BEFORE
+    guessing any address at a domain: a guessed domain with no MX record is
+    a certain bounce, not a maybe.
+    """
+    return get_mx_host(domain) is not None
+
+
 def _smtp_check(mx_host, address, from_address="check@example.com", timeout=8):
     """
     Open an SMTP connection and ask 'would you accept mail for this address?'
