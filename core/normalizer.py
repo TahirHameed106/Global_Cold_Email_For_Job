@@ -6,33 +6,6 @@ company-size / employment-type / country preferences.
 import re
 
 
-_EMPLOYMENT_TYPE_PATTERNS = {
-    "internship": [
-        r"\bintern(?:ship)?\b",
-        r"\btrainee\b",
-        r"\bapprentice\b",
-        r"\bco[-\s]?op\b",
-        r"\bworking\s+student\b",
-        r"\bstudent\s+worker\b",
-    ],
-    "junior": [
-        r"\bjunior\b",
-        r"\bjr\.?\b",
-        r"\bentry[-\s]level\b",
-        r"\bnew[-\s](?:grad|graduate)\b",
-        r"\bfresher\b",
-        r"\bassociate\s+(?:engineer|developer|software\s+engineer|software\s+developer)\b",
-    ],
-    "volunteer": [
-        r"\bvolunteer(?:ing|ed)?\b",
-        r"\bunpaid\b",
-        r"\bpro\s+bono\b",
-        r"\bcommunity\s+contributor\b",
-        r"\bopen\s+source\s+contributor\b",
-    ],
-}
-
-
 def dedupe(jobs):
     """Remove duplicate postings (same company + same title) across sources."""
     seen = set()
@@ -45,15 +18,44 @@ def dedupe(jobs):
     return unique
 
 
+# Real postings use many different words for the same thing, and rarely the
+# exact word in your profile.yaml config. This maps each config value to every
+# realistic real-world phrasing so the filter doesn't reject good jobs just
+# because of wording differences.
+EMPLOYMENT_TYPE_SYNONYMS = {
+    "internship": [
+        "intern", "internship", "trainee", "traineeship", "apprentice",
+        "apprenticeship", "co-op", "coop", "working student", "student worker",
+    ],
+    "junior": [
+        "junior", "jr", "entry level", "entry-level", "new grad", "new graduate",
+        "graduate", "associate", "fresher", "early career", "level 1", "l1",
+    ],
+    "volunteer": [
+        "volunteer", "volunteering", "unpaid", "pro bono", "probono", "honorary",
+    ],
+    "entry-level": [
+        "entry level", "entry-level", "junior", "new grad", "graduate", "fresher",
+    ],
+}
+
+
 def _employment_type_matches(job, wanted_types):
     """
-    Most sources don't cleanly tag employment type, so we check the title
-    and description text for the wanted keywords too.
+    Checks the job's title/description for realistic real-world phrasings of
+    each wanted employment type (e.g. "junior" also matches "trainee",
+    "fresher", "entry level"). Uses whole-word matching so "intern" doesn't
+    accidentally match inside unrelated words like "internal" or "international".
     """
     text = f"{job['title']} {job['description']}".lower()
-    for wanted_type in wanted_types:
-        patterns = _EMPLOYMENT_TYPE_PATTERNS.get(wanted_type.lower(), [rf"\b{re.escape(wanted_type.lower())}\b"])
-        if any(re.search(pattern, text) for pattern in patterns):
+
+    all_phrases = set()
+    for wanted in wanted_types:
+        all_phrases.update(EMPLOYMENT_TYPE_SYNONYMS.get(wanted.lower(), [wanted.lower()]))
+
+    for phrase in all_phrases:
+        pattern = r"\b" + re.escape(phrase) + r"\b"
+        if re.search(pattern, text):
             return True
     return False
 

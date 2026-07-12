@@ -68,6 +68,8 @@ sources:
   himalayas: true
   adzuna: true      # needs ADZUNA_APP_ID + ADZUNA_APP_KEY in .env (free signup)
   jooble: true       # needs JOOBLE_API_KEY in .env (free signup) — best UAE/Saudi coverage
+  remotive: true     # free, no signup, no key needed
+  arbeitnow: true    # free, no signup, no key needed — strong Germany/Austria coverage
   wellfound: false
   linkedin: false
 

@@ -33,7 +33,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from sources import remoteok, weworkremotely, himalayas, wellfound, adzuna, jooble, linkedin
+from sources import remoteok, weworkremotely, himalayas, wellfound, adzuna, jooble, linkedin, remotive, arbeitnow
 from core.normalizer import dedupe, filter_jobs
 from core.matcher import score_match
 from core.cv_tailor import build_tailored_cv_data, render_cv_docx
@@ -53,6 +53,8 @@ SOURCE_MODULES = {
     "adzuna": adzuna,
     "jooble": jooble,
     "linkedin": linkedin,
+    "remotive": remotive,
+    "arbeitnow": arbeitnow,
 }
 
 

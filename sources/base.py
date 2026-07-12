@@ -32,11 +32,6 @@ def normalize_job(**kwargs):
 _STOPWORDS = {"the", "and", "for", "with", "using", "via", "a", "an", "of", "in", "at", "to"}
 
 
-def _word_hits(text_lower, phrase):
-    words = [w for w in re.findall(r"[a-z0-9]+", phrase.lower()) if len(w) > 2 and w not in _STOPWORDS]
-    return sum(1 for w in words if re.search(rf"\b{re.escape(w)}\b", text_lower))
-
-
 def keyword_matches(text, keywords, min_hits=2):
     """
     Loose, word-level keyword match — replaces fragile exact-phrase matching.
@@ -47,14 +42,21 @@ def keyword_matches(text, keywords, min_hits=2):
     individual significant words from each keyword phrase instead, so any
     real overlap counts as a hit.
 
-    This is intentionally loose at this stage — the AI match scorer
+    min_hits=2 requires at least 2 distinct meaningful words to overlap
+    (e.g. both "developer" and "junior"), not just any single word — a lone
+    shared word like "software" mentioned in an unrelated posting (e.g. an
+    admin job mentioning "supports our software team") was letting through
+    completely irrelevant jobs when min_hits was 1.
+
+    This is intentionally still loose at this stage — the AI match scorer
     (core/matcher.py) does the real, strict filtering later. This stage's
-    only job is to not throw away good jobs before they even get scored.
+    only job is to not throw away good jobs before they even get scored,
+    while not flooding it with obviously unrelated ones either.
     """
     text_lower = text.lower()
     for kw in keywords:
-        words = [w for w in re.findall(r"[a-z0-9]+", kw.lower()) if len(w) > 2 and w not in _STOPWORDS]
-        required_hits = min(min_hits, len(words)) if words else min_hits
-        if _word_hits(text_lower, kw) >= required_hits:
+        words = [w for w in kw.lower().split() if len(w) > 2 and w not in _STOPWORDS]
+        hits = sum(1 for w in words if re.search(r"\b" + re.escape(w) + r"\b", text_lower))
+        if hits >= min(min_hits, len(words)):  # short keywords (1-2 words) still need all their words
             return True
     return False
