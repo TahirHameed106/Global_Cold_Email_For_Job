@@ -42,7 +42,7 @@ def fetch_jobs(keywords, employment_types=None, max_jobs=25, **kwargs):
             continue
 
         company = job_raw.get("company", "Unknown")
-        job_url = job_raw.get("url") or job_raw.get("apply_url") or ""
+        job_url = job_raw.get("apply_url") or job_raw.get("url") or ""
         domain = ""
         if job_raw.get("company_logo"):
             # crude domain guess from company name; contact_finder will verify/refine

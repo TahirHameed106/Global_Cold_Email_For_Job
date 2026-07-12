@@ -27,6 +27,7 @@ import json
 import re
 import requests
 from urllib.parse import urlparse
+from bs4 import BeautifulSoup
 import yaml
 import schedule as schedule_lib
 from dotenv import load_dotenv
@@ -100,16 +101,68 @@ def collect_jobs(profile):
     return all_jobs
 
 
+JOB_BOARD_DOMAINS = {"remoteok.com", "weworkremotely.com", "himalayas.app",
+                      "adzuna.com", "indeed.com", "linkedin.com", "wellfound.com",
+                      "remotive.com", "arbeitnow.com", "jobicy.com"}
+
+# Domains that show up as outbound links but aren't the company's own site —
+# social media, trackers, generic ATS platforms hosting the application form
+# rather than the company's real domain.
+NOT_COMPANY_DOMAINS = JOB_BOARD_DOMAINS | {
+    "twitter.com", "x.com", "linkedin.com", "facebook.com", "instagram.com",
+    "youtube.com", "github.com", "google.com", "google-analytics.com",
+}
+
+
+def _find_outbound_company_link(listing_page_url):
+    """
+    For job boards (like WeWorkRemotely) whose own URL is just their listing
+    page — not a redirect to the company — fetch that page's HTML and look
+    for the actual outbound "Apply" link, which usually points to the real
+    company site or careers page.
+    """
+    try:
+        resp = requests.get(listing_page_url, timeout=10,
+                             headers={"User-Agent": "Mozilla/5.0 (compatible; JobSearchBot/1.0)"})
+        soup = BeautifulSoup(resp.text, "html.parser")
+
+        candidates = []
+        for a in soup.find_all("a", href=True):
+            href = a["href"]
+            if not href.startswith("http"):
+                continue
+            domain = urlparse(href).netloc.replace("www.", "")
+            if not domain or any(nd in domain for nd in NOT_COMPANY_DOMAINS):
+                continue
+            link_text = a.get_text(strip=True).lower()
+            # Strongly prefer a link whose visible text says "apply" — that's
+            # almost always the real outbound link to the company
+            priority = 0 if "apply" in link_text else 1
+            candidates.append((priority, domain))
+
+        if candidates:
+            candidates.sort(key=lambda c: c[0])
+            return candidates[0][1]
+    except Exception:
+        pass
+    return None
+
+
 def resolve_real_domain(job):
     """
     Get the company's ACTUAL domain instead of guessing one from their name.
-    Job board URLs (RemoteOK, WeWorkRemotely, Adzuna, etc.) almost always
-    redirect to the company's real "Apply" page — following that redirect
-    chain gives us their genuine domain instead of a blind guess like
-    "Arabian Private Holdings" -> "arabianprivateholdings.com" (usually wrong).
 
-    Falls back to a name-based guess ONLY if the job has no usable URL,
-    and that guess is validated by has_mx() before ever being used to send.
+    Two-tier resolution:
+      1. Follow the job URL's redirect chain — works when the URL already
+         points straight to the company (RemoteOK's apply_url, Adzuna's
+         redirect_url, etc.)
+      2. If that lands back on the job board itself (e.g. WeWorkRemotely's
+         RSS link is just their own listing page, not a redirect), fetch
+         that listing page's HTML and look for the actual outbound "Apply"
+         link, which points to the real company site.
+
+    Falls back to a name-based guess ONLY if both tiers fail, and that guess
+    is validated by has_mx() before ever being used to send.
     """
     if job.get("company_domain"):
         return job["company_domain"]
@@ -120,13 +173,16 @@ def resolve_real_domain(job):
             resp = requests.head(job_url, allow_redirects=True, timeout=10,
                                   headers={"User-Agent": "Mozilla/5.0 (compatible; JobSearchBot/1.0)"})
             final_domain = urlparse(resp.url).netloc.replace("www.", "")
-            # Skip if it redirected to another job board rather than the company's own site
-            job_board_domains = {"remoteok.com", "weworkremotely.com", "himalayas.app",
-                                  "adzuna.com", "indeed.com", "linkedin.com", "wellfound.com"}
-            if final_domain and not any(jb in final_domain for jb in job_board_domains):
+            if final_domain and not any(jb in final_domain for jb in JOB_BOARD_DOMAINS):
                 return final_domain
         except Exception:
-            pass  # falls through to the name-based guess below
+            pass  # falls through to tier 2 below
+
+        # Tier 2 — the URL just led back to the job board itself; scrape
+        # that listing page for the real outbound company link instead.
+        outbound_domain = _find_outbound_company_link(job_url)
+        if outbound_domain:
+            return outbound_domain
 
     # Last resort: guess from company name, stripping parenthetical region
     # tags like "(MENA)" or "(UK)" that aren't part of the actual brand name
