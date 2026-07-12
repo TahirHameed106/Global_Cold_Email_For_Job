@@ -101,17 +101,20 @@ def collect_jobs(profile):
     return all_jobs
 
 
-JOB_BOARD_DOMAINS = {"remoteok.com", "weworkremotely.com", "himalayas.app",
-                      "adzuna.com", "indeed.com", "linkedin.com", "wellfound.com",
-                      "remotive.com", "arbeitnow.com", "jobicy.com"}
+# Core keywords, not full domains — a job board's TLD varies by country
+# (adzuna.com vs adzuna.co.uk vs adzuna.de all being the same company was
+# the actual bug behind the careers@adzuna.co.uk bounce: matching only
+# "adzuna.com" as an exact domain missed every regional variant).
+JOB_BOARD_KEYWORDS = ["remoteok", "weworkremotely", "himalayas", "adzuna",
+                      "indeed", "linkedin", "wellfound", "remotive", "arbeitnow", "jobicy"]
 
 # Domains that show up as outbound links but aren't the company's own site —
 # social media, trackers, generic ATS platforms hosting the application form
 # rather than the company's real domain.
-NOT_COMPANY_DOMAINS = JOB_BOARD_DOMAINS | {
-    "twitter.com", "x.com", "linkedin.com", "facebook.com", "instagram.com",
+NOT_COMPANY_KEYWORDS = JOB_BOARD_KEYWORDS + [
+    "twitter.com", "x.com", "facebook.com", "instagram.com",
     "youtube.com", "github.com", "google.com", "google-analytics.com",
-}
+]
 
 
 def _find_outbound_company_link(listing_page_url):
@@ -132,7 +135,7 @@ def _find_outbound_company_link(listing_page_url):
             if not href.startswith("http"):
                 continue
             domain = urlparse(href).netloc.replace("www.", "")
-            if not domain or any(nd in domain for nd in NOT_COMPANY_DOMAINS):
+            if not domain or any(nd in domain for nd in NOT_COMPANY_KEYWORDS):
                 continue
             link_text = a.get_text(strip=True).lower()
             # Strongly prefer a link whose visible text says "apply" — that's
@@ -188,7 +191,7 @@ def resolve_real_domain(job):
             resp = requests.head(job_url, allow_redirects=True, timeout=10,
                                   headers={"User-Agent": "Mozilla/5.0 (compatible; JobSearchBot/1.0)"})
             final_domain = urlparse(resp.url).netloc.replace("www.", "")
-            if final_domain and not any(jb in final_domain for jb in JOB_BOARD_DOMAINS):
+            if final_domain and not any(jb in final_domain for jb in JOB_BOARD_KEYWORDS):
                 return final_domain
         except Exception:
             pass  # falls through to tier 2 below
@@ -217,6 +220,17 @@ def find_best_contact(job, contact_priority):
     False), we do NOT send — a guessed domain that doesn't exist at all is
     a certain bounce, not an "unknown, might as well try."
     """
+    # If a human (you) personally saw this email shared publicly — e.g. an
+    # HR person posting their contact info on LinkedIn — and manually added
+    # it to data/manual_jobs_linkedin.json, skip all guessing and use it
+    # directly. This is legitimate because a person voluntarily sharing
+    # their own contact info for outreach is real consent; it's bulk
+    # automated scraping of profiles that isn't.
+    manual_email = job.get("contact_email", "").strip()
+    if manual_email:
+        print(f"[main] Using manually-verified contact: {manual_email}")
+        return manual_email, "manual_verified"
+
     domain = resolve_real_domain(job)
 
     if not has_mx(domain):

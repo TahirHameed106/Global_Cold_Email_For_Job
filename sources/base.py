@@ -19,6 +19,7 @@ JOB_SCHEMA_EXAMPLE = {
     "job_url": "https://...",
     "posted": "2026-07-01",
     "tags": ["python", "django"],
+    "contact_email": "",  # if a human manually found/verified this, skip all guessing
 }
 
 

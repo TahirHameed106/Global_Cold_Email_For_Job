@@ -51,6 +51,7 @@ def fetch_jobs(keywords=None, employment_types=None, max_jobs=25, **kwargs):
             company_domain=j.get("company_domain", ""),
             company_size=j.get("company_size", "size_unknown"),
             location=j.get("location", "Remote"),
+            contact_email=j.get("contact_email", ""),  # if you saw HR share this yourself, put it here
             remote=True,
             employment_type=j.get("employment_type", "unknown"),
             description=j.get("description", ""),
