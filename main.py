@@ -148,6 +148,21 @@ def _find_outbound_company_link(listing_page_url):
     return None
 
 
+def sanitize_filename(text, max_length=80):
+    """
+    Strip everything Windows (and to be safe, Mac/Linux too) forbids in a
+    filename: < > : " / \\ | ? * and control characters, plus collapse
+    repeated separators. Job titles from real postings can contain almost
+    anything — emoji, pipes, slashes — so this can't just handle the
+    characters seen so far, it needs to allow-list what's safe instead.
+    """
+    # Keep only letters, numbers, spaces, and a few safe punctuation marks
+    safe = re.sub(r"[^\w\s\-\(\)&,.]", "", text, flags=re.UNICODE)
+    safe = re.sub(r"\s+", "_", safe.strip())
+    safe = re.sub(r"_+", "_", safe).strip("_")
+    return safe[:max_length] or "untitled"
+
+
 def resolve_real_domain(job):
     """
     Get the company's ACTUAL domain instead of guessing one from their name.
@@ -294,7 +309,7 @@ def run_pipeline():
 
         # Tailor the CV
         tailored = build_tailored_cv_data(job["title"], job["description"], skill_bank, match)
-        cv_filename = f"{job['company']}_{job['title']}".replace(" ", "_").replace("/", "-")[:80] + ".docx"
+        cv_filename = sanitize_filename(f"{candidate['name']}_{job['title']}") + ".docx"
         cv_path = os.path.join(GENERATED_CV_DIR, cv_filename)
         render_cv_docx(candidate, tailored, cv_path)
 
