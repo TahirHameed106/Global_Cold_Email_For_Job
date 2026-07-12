@@ -67,9 +67,10 @@ sources:
   weworkremotely: true
   himalayas: true
   adzuna: true      # needs ADZUNA_APP_ID + ADZUNA_APP_KEY in .env (free signup)
-  jooble: true       # needs JOOBLE_API_KEY in .env (free signup) — best UAE/Saudi coverage
+  jooble: false      # disabled — their signup now asks for phone/card on some accounts, not worth it
   remotive: true     # free, no signup, no key needed
   arbeitnow: true    # free, no signup, no key needed — strong Germany/Austria coverage
+  jobicy: true       # free, no signup, no key needed
   wellfound: false
   linkedin: false
 
