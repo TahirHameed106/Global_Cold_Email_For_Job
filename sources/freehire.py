@@ -46,47 +46,66 @@ def fetch_jobs(keywords, employment_types=None, max_jobs=25, company_size=None, 
     company_size: e.g. "1-10" — pass through from profile.yaml's
     search.company_size range. If given, freehire filters server-side
     instead of us guessing after the fact.
+
+    NOTE: company_size=1-10 combined with every other filter can return 0
+    results — genuinely tiny startups rarely use the ATS platforms freehire
+    aggregates from (Greenhouse/Lever/Ashby are usually adopted once a
+    company is past pure founder-hiring). If the strict query comes back
+    empty, this automatically retries once without the company_size filter
+    rather than silently giving up.
     """
-    jobs = []
     employment_types = employment_types or []
 
-    # Map our profile's employment_types to freehire's seniority vocabulary
     seniority_values = []
     if any(t in employment_types for t in ["internship"]):
         seniority_values.append("intern")
     if any(t in employment_types for t in ["junior", "entry-level"]):
         seniority_values.append("junior")
 
-    params = [
-        ("work_mode", "remote"),
-        ("limit", min(max_jobs, 100)),
-    ]
-    for cat in SOFTWARE_CATEGORIES:
-        params.append(("category", cat))
-    for sen in seniority_values:
-        params.append(("seniority", sen))
-    if company_size:
-        params.append(("company_size", company_size))
-    if keywords:
-        params.append(("q", keywords[0]))  # their full-text search — one focused term works best
+    def build_params(include_size):
+        params = [("work_mode", "remote"), ("limit", min(max_jobs, 100))]
+        for cat in SOFTWARE_CATEGORIES:
+            params.append(("category", cat))
+        for sen in seniority_values:
+            params.append(("seniority", sen))
+        if include_size and company_size:
+            params.append(("company_size", company_size))
+        # No full-text `q` here deliberately — combined with every other
+        # filter above, requiring exact keyword-phrase overlap too was
+        # over-constraining the query into an empty set. The category +
+        # seniority filters already scope this to real software roles;
+        # keyword_matches() below does the finer text check client-side.
+        return params
 
-    try:
-        resp = requests.get(SEARCH_URL, params=params, headers=HEADERS, timeout=15)
-        resp.raise_for_status()
-        data = resp.json()
-    except Exception as e:
-        print(f"[freehire.dev] Fetch failed: {e}")
+    def run_query(params):
+        try:
+            resp = requests.get(SEARCH_URL, params=params, headers=HEADERS, timeout=15)
+            resp.raise_for_status()
+            return resp.json()
+        except Exception as e:
+            print(f"[freehire.dev] Fetch failed: {e}")
+            return None
+
+    jobs = []
+    data = run_query(build_params(include_size=True))
+    total = (data or {}).get("meta", {}).get("total", 0)
+
+    if data is not None and total == 0 and company_size:
+        print(f"[freehire.dev] 0 results with company_size={company_size} filter — "
+              f"retrying without it (still remote + junior/intern + software categories).")
+        data = run_query(build_params(include_size=False))
+        total = (data or {}).get("meta", {}).get("total", 0)
+
+    if not data:
         return jobs
 
     for job_raw in data.get("data", []):
         if len(jobs) >= max_jobs:
             break
         job = _parse_job(job_raw)
-        # Extra client-side keyword check in case the q= search was too broad
         if keyword_matches(f"{job['title']} {job['description']}", keywords):
             jobs.append(job)
 
-    total = data.get("meta", {}).get("total", len(jobs))
     print(f"[freehire.dev] {len(jobs)} matching job(s) found ({total} total match the server-side filters)")
     return jobs
 
