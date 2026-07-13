@@ -13,10 +13,8 @@ original project used, but with two upgrades:
      result pages — no login, no account actions, nothing behind auth.
 
 IMPORTANT — verify before relying on this:
-Rozee.pk frequently returns Cloudflare challenge pages instead of jobs.
-That means this adapter is best treated as an opt-in/manual source, not a
-default automated source. Run this file directly first if you want to test
-whether the site is currently reachable from your network:
+I could not test this against live rozee.pk pages from this environment
+(sandboxed network). Run this file directly first:
 
     python -m sources.pakistan_jobs
 
@@ -95,11 +93,6 @@ def fetch_jobs(keywords, employment_types=None, max_jobs=25, **kwargs):
                     lambda d: d.execute_script("return document.readyState") == "complete"
                 )
                 time.sleep(3)  # extra buffer for the AJAX job list to render in
-
-                page_text = driver.page_source.lower()
-                if "just a moment" in page_text or "verification successful" in page_text or "cf-turnstile" in page_text:
-                    print("[Rozee.pk] Cloudflare challenge detected — skipping this source.")
-                    return jobs
 
                 # SELECTOR TO VERIFY: Rozee.pk job cards. If this finds 0
                 # results, inspect a live search page and update this selector.

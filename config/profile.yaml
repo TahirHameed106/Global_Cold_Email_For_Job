@@ -59,6 +59,10 @@ sources:
   # Toggle sources on/off. See sources/ folder — each one is a self-contained
   # adapter.
   #
+  # freehire.dev is the highest-signal source: fully public (no API key),
+  # and its own filters directly enforce your seniority + company-size
+  # requirements server-side, instead of guessing afterward.
+  freehire: true
   # Wellfound and LinkedIn have no public job-search API and scraping them
   # breaks their Terms of Service, so they're documented manual-assist stubs
   # (disabled by default) — see sources/wellfound.py and sources/linkedin.py
@@ -72,7 +76,7 @@ sources:
   remotive: true     # free, no signup, no key needed
   arbeitnow: true    # free, no signup, no key needed — strong Germany/Austria coverage
   jobicy: true       # free, no signup, no key needed
-  pakistan_jobs: false  # Rozee.pk is often blocked by Cloudflare; keep off by default and use only as an opt-in/manual source
+  pakistan_jobs: true  # Rozee.pk via Selenium — needs Chrome installed, no key needed
   wellfound: false
   linkedin: false
 
