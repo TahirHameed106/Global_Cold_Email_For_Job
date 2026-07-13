@@ -11,7 +11,7 @@ Saudi Arabia / Australia / Austria.
 
 1. **`config/profile.yaml`** — your search criteria (field, keywords, countries, company size, threshold)
 2. **`data/skill_bank.json`** — the ONLY source of truth for your real skills/projects/experience. Nothing is ever invented outside this file.
-3. **`sources/`** — pulls jobs from RemoteOK, We Work Remotely, Himalayas, Adzuna, and Jooble (all free, legitimate APIs — no login/scraping risk). Wellfound and LinkedIn are manual-assist stubs — see below.
+3. **`sources/`** — pulls jobs from RemoteOK, We Work Remotely, Himalayas, Adzuna, Remotive, Arbeitnow, and Jobicy (all free, legitimate APIs — no login/scraping risk), plus Rozee.pk for Pakistan (via Selenium, since Pakistani job boards don't offer free APIs). Wellfound and LinkedIn are manual-assist stubs — see below.
 4. **`core/matcher.py`** — scores each job against your skill bank, 0-100%
 5. **`core/cv_tailor.py`** — for jobs scoring above your threshold, reorders and rephrases your real bullets to mirror the job's language, then renders a `.docx`
 6. **`core/contact_finder.py`** — finds a real, company-published email (never scrapes LinkedIn), and free-verifies it won't bounce

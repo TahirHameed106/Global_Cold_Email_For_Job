@@ -42,6 +42,7 @@ search:
     - "Saudi Arabia"
     - "Australia"
     - "Austria"
+    - "Pakistan"
     - "Remote"          # keep this — most startup listings just say "Remote"
 
   # Startups only. Team size filters are applied when a source provides
@@ -71,6 +72,7 @@ sources:
   remotive: true     # free, no signup, no key needed
   arbeitnow: true    # free, no signup, no key needed — strong Germany/Austria coverage
   jobicy: true       # free, no signup, no key needed
+  pakistan_jobs: false  # Rozee.pk is often blocked by Cloudflare; keep off by default and use only as an opt-in/manual source
   wellfound: false
   linkedin: false
 

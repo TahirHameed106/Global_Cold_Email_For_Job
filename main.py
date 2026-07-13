@@ -34,7 +34,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from sources import remoteok, weworkremotely, himalayas, wellfound, adzuna, jooble, linkedin, remotive, arbeitnow, jobicy
+from sources import remoteok, weworkremotely, himalayas, wellfound, adzuna, jooble, linkedin, remotive, arbeitnow, jobicy, pakistan_jobs
 from core.normalizer import dedupe, filter_jobs
 from core.matcher import score_match
 from core.cv_tailor import build_tailored_cv_data, render_cv_docx
@@ -57,6 +57,7 @@ SOURCE_MODULES = {
     "remotive": remotive,
     "arbeitnow": arbeitnow,
     "jobicy": jobicy,
+    "pakistan_jobs": pakistan_jobs,
 }
 
 
@@ -89,13 +90,21 @@ def collect_jobs(profile):
             print(f"[main] Unknown source '{name}' in profile.yaml, skipping.")
             continue
         print(f"\n── Source: {name} ──")
-        jobs = module.fetch_jobs(
-            keywords=keywords,
-            employment_types=emp_types,
-            max_jobs=max_per_source,
-            target_countries=target_countries,   # used by adzuna; ignored elsewhere via **kwargs
-            locations=target_countries,           # used by jooble; ignored elsewhere via **kwargs
-        )
+        try:
+            jobs = module.fetch_jobs(
+                keywords=keywords,
+                employment_types=emp_types,
+                max_jobs=max_per_source,
+                target_countries=target_countries,   # used by adzuna; ignored elsewhere via **kwargs
+                locations=target_countries,           # used by jooble; ignored elsewhere via **kwargs
+            )
+        except Exception as e:
+            # Every source already handles its own errors internally and
+            # returns [] on failure — this is a last-resort safety net so an
+            # unexpected bug in one source (e.g. a Selenium crash) can't take
+            # down the other 7 sources' worth of jobs in the same run.
+            print(f"[main] '{name}' crashed unexpectedly ({e}) — skipping this source, continuing with others.")
+            jobs = []
         all_jobs.extend(jobs)
 
     return all_jobs
@@ -142,6 +151,54 @@ def _find_outbound_company_link(listing_page_url):
             # almost always the real outbound link to the company
             priority = 0 if "apply" in link_text else 1
             candidates.append((priority, domain))
+
+        if candidates:
+            candidates.sort(key=lambda c: c[0])
+            return candidates[0][1]
+    except Exception:
+        pass
+    return None
+
+
+def _find_company_website_from_page(page_url, company_name):
+    """
+    Look for a likely company-owned website on the page itself.
+
+    This is a broader fallback than _find_outbound_company_link(): it scans
+    all outbound links on the page and prefers links whose text or URL looks
+    like a company website rather than a job board, tracker, or social link.
+    """
+    try:
+        resp = requests.get(page_url, timeout=10,
+                             headers={"User-Agent": "Mozilla/5.0 (compatible; JobSearchBot/1.0)"})
+        soup = BeautifulSoup(resp.text, "html.parser")
+
+        company_tokens = [t for t in re.split(r"[^a-z0-9]+", (company_name or "").lower()) if len(t) > 2]
+        candidates = []
+
+        for a in soup.find_all("a", href=True):
+            href = a["href"]
+            if not href.startswith("http"):
+                continue
+
+            domain = urlparse(href).netloc.replace("www.", "")
+            if not domain or any(nd in domain for nd in NOT_COMPANY_KEYWORDS):
+                continue
+
+            link_text = a.get_text(" ", strip=True).lower()
+            url_text = href.lower()
+
+            score = 0
+            if any(term in link_text for term in ["website", "visit", "company", "about", "home"]):
+                score -= 3
+            if any(token in domain for token in company_tokens):
+                score -= 2
+            if any(token in url_text for token in company_tokens):
+                score -= 1
+            if "apply" in link_text:
+                score += 2
+
+            candidates.append((score, domain))
 
         if candidates:
             candidates.sort(key=lambda c: c[0])
@@ -201,6 +258,12 @@ def resolve_real_domain(job):
         outbound_domain = _find_outbound_company_link(job_url)
         if outbound_domain:
             return outbound_domain
+
+        # Tier 3 — if we still haven't found a real site, scan the page for
+        # a company website link rather than guessing from the company name.
+        website_domain = _find_company_website_from_page(job_url, job.get("company", ""))
+        if website_domain:
+            return website_domain
 
     # Last resort: guess from company name, stripping parenthetical region
     # tags like "(MENA)" or "(UK)" that aren't part of the actual brand name

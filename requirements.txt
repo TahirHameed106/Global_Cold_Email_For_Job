@@ -7,3 +7,5 @@ feedparser
 dnspython
 google-genai
 python-docx
+selenium
+webdriver-manager
