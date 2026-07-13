@@ -15,6 +15,7 @@ company itself put on its own website.
 """
 
 import re
+import os
 import smtplib
 import socket
 import time
@@ -154,12 +155,43 @@ def build_email(first_name, last_name, domain, pattern):
 
 # ─── Step 3: free SMTP verification (no email actually sent) ──────────────
 
-_mx_cache = {}
+import json
+
+_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_MX_CACHE_FILE = os.path.join(_PROJECT_ROOT, "data", "domain_mx_cache.json")
+
 _catchall_cache = {}
 
 
+def _load_mx_cache():
+    if os.path.exists(_MX_CACHE_FILE):
+        try:
+            with open(_MX_CACHE_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            return {}
+    return {}
+
+
+def _save_mx_cache(cache):
+    try:
+        os.makedirs(os.path.dirname(_MX_CACHE_FILE), exist_ok=True)
+        with open(_MX_CACHE_FILE, "w", encoding="utf-8") as f:
+            json.dump(cache, f, indent=2)
+    except Exception:
+        pass  # caching is an optimization, never worth crashing over
+
+
+_mx_cache = _load_mx_cache()
+
+
 def get_mx_host(domain):
-    """Look up the mail server for a domain. Cached per run."""
+    """
+    Look up the mail server for a domain. Cached to disk (data/domain_mx_cache.json)
+    so a domain confirmed dead once (like a small company with no working
+    business email) doesn't get silently re-discovered and re-logged on
+    every single run — it's remembered.
+    """
     if domain in _mx_cache:
         return _mx_cache[domain]
     if not HAVE_DNS:
@@ -168,9 +200,11 @@ def get_mx_host(domain):
         answers = dns.resolver.resolve(domain, "MX")
         mx_host = str(sorted(answers, key=lambda r: r.preference)[0].exchange).rstrip(".")
         _mx_cache[domain] = mx_host
+        _save_mx_cache(_mx_cache)
         return mx_host
     except Exception:
         _mx_cache[domain] = None
+        _save_mx_cache(_mx_cache)
         return None
 
 
